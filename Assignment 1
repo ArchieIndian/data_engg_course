@@ -1,0 +1,102 @@
+Assignment 1:-
+
+1. Install Google Cloud SDK. What's the version you have? (To get the version, run gcloud --version)
+
+gcloud --version
+
+	Google Cloud SDK 369.0.0
+	bq 2.0.72
+	core 2022.01.14
+	gsutil 5.6
+
+
+2. Question 2: terraform apply *
+
+	google_storage_bucket.data-lake-bucket: Refreshing state... [id=dtc_data_lake_solar-magpie-339108]
+	google_bigquery_dataset.dataset: Refreshing state... [id=projects/solar-magpie-339108/datasets/trips_data_all]
+
+	Note: Objects have changed outside of Terraform
+
+	Terraform detected the following changes made outside of Terraform since the last "terraform apply":
+
+	  # google_bigquery_dataset.dataset has changed
+	  ~ resource "google_bigquery_dataset" "dataset" {
+	        id                              = "projects/solar-magpie-339108/datasets/trips_data_all"
+	      + labels                          = {}
+	        # (10 unchanged attributes hidden)
+
+	        # (4 unchanged blocks hidden)
+	    }
+
+	  # google_storage_bucket.data-lake-bucket has changed
+	  ~ resource "google_storage_bucket" "data-lake-bucket" {
+	        id                          = "dtc_data_lake_solar-magpie-339108"
+	      + labels                      = {}
+	        name                        = "dtc_data_lake_solar-magpie-339108"
+	        # (9 unchanged attributes hidden)
+
+
+	        # (2 unchanged blocks hidden)
+	    }
+
+
+	Unless you have made equivalent changes to your configuration, or ignored the relevant attributes using ignore_changes, the following plan may include actions to undo or respond to these changes.
+
+	───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+	No changes. Your infrastructure matches the configuration.
+
+	Your configuration already matches the changes detected above. If you'd like to update the Terraform state to match, create and apply a refresh-only plan:
+	  terraform apply -refresh-only
+
+	Apply complete! Resources: 0 added, 0 changed, 0 destroyed.
+
+3. How many taxi trips were there on January 15?
+
+-- SELECT count(1) FROM `<project_name>.trips_data_all.nytaxi` where date(tpep_pickup_datetime) = '2021-01-15'
+
+53024
+
+4. Question 4: Largest tip for each day *
+On which day it was the largest tip in January? (note: it's not a typo, it's "tip", not "trip")
+
+SELECT date(tpep_pickup_datetime) , max(tip_amount) as max_tip
+    FROM `solar-magpie-339108.trips_data_all.nytaxi` 
+        group by  date(tpep_pickup_datetime)
+            order by max_tip desc
+
+2021-01-20
+
+5. Question 5: Most popular destination *
+What was the most popular destination for passengers picked up in central park on January 14? Enter the zone name (not id). If the zone name is unknown (missing), write "Unknown"            
+
+
+SELECT zone from `solar-magpie-339108.trips_data_all.taxi_zone` where LOCATIONID in(
+SELECT DOLocationID from (
+SELECT a.PULocationID, a.DOLocationID, count(*) cnt FROM `solar-magpie-339108.trips_data_all.nytaxi` a
+where a.PULocationID in (select LocationID from `solar-magpie-339108.trips_data_all.taxi_zone` where zone ="Central Park" )  and DATE(a.tpep_pickup_datetime) = '2021-01-14'
+group by a.PULocationID, a.DOLocationID
+order by cnt DESC
+LIMIT 1))
+
+
+
+
+6 What's the pickup-dropoff pair with the largest average price for a ride (calculated based on total_amount)? Enter two zone names separated by a slashFor example:"Jamaica Bay / Clinton East"If any of the zone names are unknown (missing), write "Unknown". For example, "Unknown / Clinton East".
+
+
+	select 
+	select b.PULocationID, b.DOLocationID from (
+	select a.PULocationID,a.DOLocationID, avg(total_amount) avg_amt
+	    from `solar-magpie-339108.trips_data_all.nytaxi` a
+	        group by a.PULocationID,a.DOLocationID
+	        order by avg_amt desc LIMIT 1)b 
+
+
+	SELECT * FROM `solar-magpie-339108.trips_data_all.taxi_zone` 
+where LOCATIONID IN (4,265)   
+
+     
+
+
+
